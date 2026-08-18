@@ -1,0 +1,15 @@
+# Sentinel Ingest
+#
+# Served at the origin root, where RFC 9309 says robots.txt lives.
+#
+# This is not decoration. The sandbox source is fetched over loopback against
+# this same origin, so this file is what the crawler's own robots gate reads
+# before every sandbox poll. /sandbox/private is disallowed here, and
+#   GET /api/robots-check?url=<origin>/sandbox/private/jobs
+# will show you the request being refused rather than merely promised.
+
+User-agent: *
+Disallow: /sandbox/private
+Disallow: /api/
+Allow: /
+Crawl-delay: 1

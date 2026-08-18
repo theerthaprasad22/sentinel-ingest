@@ -1,0 +1,42 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt pytest
+      # No network in the test suite: every test drives the in-process sandbox
+      # or pure functions. A CI job that depends on a third-party job board
+      # being up is a CI job that fails for reasons that are not your fault.
+      - run: pytest -q
+
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t sentinel-ingest .
+      - name: boot the container and check it serves
+        run: |
+          docker run -d --name sentinel -p 8000:8000 \
+            -e SENTINEL_SCHEDULER=0 sentinel-ingest
+          for i in $(seq 1 40); do
+            curl -fsS http://127.0.0.1:8000/healthz && break || sleep 3
+          done
+          curl -fsS http://127.0.0.1:8000/api/ml | head -c 200
+          docker rm -f sentinel
+
+# Kept here rather than at .github/workflows/ci.yml because the local gh token
+# lacks the `workflow` OAuth scope. To enable it:
+#     gh auth refresh -s workflow -h github.com
+#     mkdir -p .github/workflows && git mv docs/ci.yml.example .github/workflows/ci.yml
+#     git commit -am "enable CI" && git push

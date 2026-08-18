@@ -1,0 +1,33 @@
+# Render blueprint. `render.com/deploy?repo=<this repo>` provisions it whole.
+services:
+  - type: web
+    name: sentinel-ingest
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      # The crawler talks to its own sandbox over loopback. On Render the
+      # platform assigns PORT, and this must agree with it.
+      - key: PORT
+        value: 8000
+      - key: SENTINEL_SELF_URL
+        value: http://127.0.0.1:8000
+      # Free instances have an ephemeral disk and no persistent volume, so the
+      # database lives in the container and is rebuilt on each deploy. That is
+      # acceptable here: the pipeline repopulates within one poll cycle, and the
+      # breaker/bandit state it loses is state it can relearn.
+      - key: SENTINEL_DB
+        value: /app/data/sentinel.db
+      - key: SENTINEL_RESPECT_ROBOTS
+        value: "1"
+      # Deliberately conservative for a shared free instance. The bandit can
+      # only ever choose to go slower than this ceiling, never faster.
+      - key: SENTINEL_HOST_RPM_CAP
+        value: "10"
+      - key: SENTINEL_MAX_CONCURRENCY
+        value: "3"
+      - key: SENTINEL_CONTACT
+        sync: false        # set this to a real contact address in the dashboard

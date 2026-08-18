@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sentinel Ingest — live pipeline console</title>
+  <meta name="description" content="Resilient job-listing ingestion: adaptive pacing, coherent identities, ML soft-block detection and schema-drift quarantine.">
+  <link rel="stylesheet" href="/static/app.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>">
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <h1>Sentinel Ingest</h1>
+      <span class="sub">job-listing pipeline console</span>
+    </div>
+    <div class="spacer"></div>
+    <span class="pill" id="pill-status"><span class="dot" id="status-dot"></span><span id="status-text">connecting…</span></span>
+    <span class="pill" id="pill-uptime">uptime —</span>
+    <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle colour theme">◐</button>
+    <a class="pill" href="/docs" title="OpenAPI">API ↗</a>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <p class="notice">
+    <strong>What is real here.</strong>
+    Four of the five sources are live public feeds — Remotive, Arbeitnow, We Work Remotely
+    and Hacker News — pulled through their published APIs and RSS. The fifth,
+    <em>sandbox</em>, is a hostile job board served by this same process: its listings are
+    synthetic and labelled as such everywhere they appear. Every number on this page is
+    measured from real traffic; none of it is seeded, mocked or hand-written.
+    No LinkedIn, Indeed or Naukri account was touched, per the brief's scope guardrail.
+  </p>
+
+  <!-- ---------------------------------------------------------------- -->
+  <section>
+    <div class="section-head">
+      <h2>Pipeline</h2>
+      <span class="hint">rolling one-hour window</span>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="k">Jobs stored</div><div class="v" id="s-jobs">—</div><div class="n" id="s-jobs-n">deduplicated</div></div>
+      <div class="stat"><div class="k">New / 24h</div><div class="v" id="s-new">—</div><div class="n">first seen today</div></div>
+      <div class="stat"><div class="k">Clean fetches</div><div class="v" id="s-clean">—</div><div class="n" id="s-req">— requests</div></div>
+      <div class="stat"><div class="k">Sources up</div><div class="v" id="s-src">—</div><div class="n">circuit closed</div></div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------- -->
+  <section>
+    <div class="section-head">
+      <h2>Sources</h2>
+      <span class="hint">strategy ladder · circuit state · pacing posterior</span>
+    </div>
+    <div class="sources" id="sources"></div>
+  </section>
+
+  <!-- ---------------------------------------------------------------- -->
+  <section id="sandbox-section">
+    <div class="section-head">
+      <h2>Break it on purpose</h2>
+      <span class="hint">every switch is a real defence, applied to the <em>sandbox</em> source only</span>
+    </div>
+    <div class="panel">
+      <div class="toggles" id="toggles"></div>
+      <div class="row">
+        <label for="markup">Markup version</label>
+        <select id="markup">
+          <option value="1">v1 — semantic (li.job / .job-title)</option>
+          <option value="2">v2 — test-id build (article[data-testid])</option>
+          <option value="3">v3 — hashed class names (._1x7fq)</option>
+        </select>
+        <button class="btn primary" id="poll-sandbox">Poll sandbox now</button>
+        <button class="btn" id="reset-sandbox">Reset defences</button>
+        <span class="pill" id="sandbox-counters">—</span>
+      </div>
+      <p class="licence">
+        Flip <em>captcha wall</em> and poll: the response is HTTP&nbsp;200, so a status-code-only
+        pipeline would record a success. Watch the classifier score it, the identity burn, the
+        circuit open, and the strategy ladder step down to the next rung.
+      </p>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------- -->
+  <section>
+    <div class="section-head">
+      <h2>Live events</h2>
+      <span class="hint">server-sent, straight from the scheduler</span>
+    </div>
+    <div class="feed" id="feed"></div>
+  </section>
+
+  <!-- ---------------------------------------------------------------- -->
+  <section>
+    <div class="section-head">
+      <h2>Jobs</h2>
+      <span class="hint">semantic search — TF-IDF → SVD → cosine, no keyword matching</span>
+    </div>
+    <div class="row" style="margin-top:0">
+      <input type="search" id="q" placeholder="try: &ldquo;ml infra work with pytorch&rdquo; or &ldquo;junior python remote&rdquo;" autocomplete="off">
+      <select id="f-source"><option value="">all sources</option></select>
+      <select id="f-role"><option value="">all roles</option></select>
+      <select id="f-seniority">
+        <option value="">any level</option>
+        <option value="junior">junior</option>
+        <option value="mid">mid</option>
+        <option value="senior">senior</option>
+        <option value="lead">lead</option>
+      </select>
+    </div>
+    <div class="jobs" id="jobs" style="margin-top:12px"></div>
+  </section>
+
+  <!-- ---------------------------------------------------------------- -->
+  <section>
+    <div class="section-head">
+      <h2>Models</h2>
+      <span class="hint">trained on boot · metrics from held-out data, not from the training set</span>
+    </div>
+    <div class="ml-grid">
+      <div class="panel" id="ml-block"></div>
+      <div class="panel" id="ml-index"></div>
+      <div class="panel" id="ml-tagger"></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      <strong>Sentinel Ingest</strong> — Part 1 of the Acdyon frontend challenge.
+      Design notes in <a href="https://github.com/">DESIGN.md</a>, decisions in
+      <a href="https://github.com/">DECISIONS.md</a>. Job data belongs to the boards that
+      published it; sources are credited on each card.
+    </p>
+    <p style="opacity:.6">There is something hidden on this page. It is not important.</p>
+  </footer>
+
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
