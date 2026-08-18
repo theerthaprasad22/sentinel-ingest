@@ -194,8 +194,15 @@ async def _maybe_reindex(force: bool = False) -> None:
         db.log_event("error", "index", f"rebuild failed: {type(exc).__name__}: {exc}")
 
 
+# Uvicorn binds its listening socket *after* the lifespan startup that spawns
+# this loop. The sandbox source is served by this same process over loopback,
+# so polling immediately means connecting to a socket that is not up yet.
+_STARTUP_GRACE_S = 6.0
+
+
 async def run_forever() -> None:
     _state.update(running=True, started_at=time.time())
+    await asyncio.sleep(_STARTUP_GRACE_S)
     sem = asyncio.Semaphore(settings.max_concurrency)
     client = fetcher.make_client()
     db.log_event("info", "scheduler", "started")

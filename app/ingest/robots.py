@@ -22,7 +22,14 @@ import httpx
 
 from .. import db
 
-_TTL = 3600.0            # re-read robots.txt hourly
+_TTL = 3600.0            # re-read a successfully fetched robots.txt hourly
+# A *failed* fetch is cached for far less. Failing closed is correct -- an
+# unreadable policy is not permission -- but caching that verdict for an hour
+# turns one blip into an hour-long outage of the source. Seen in production:
+# the in-process sandbox is fetched over loopback, and uvicorn binds its socket
+# *after* the lifespan startup that launches the scheduler, so the very first
+# self-fetch raced the bind, failed, and locked the source out for an hour.
+_NEGATIVE_TTL = 60.0
 _FETCH_TIMEOUT = 8.0
 
 
@@ -39,7 +46,8 @@ class Rules:
 
     @property
     def stale(self) -> bool:
-        return (time.time() - self.fetched_at) > _TTL
+        ttl = _TTL if self.reachable else _NEGATIVE_TTL
+        return (time.time() - self.fetched_at) > ttl
 
 
 _cache: dict[str, Rules] = {}

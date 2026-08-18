@@ -70,7 +70,7 @@ account was touched** — per the brief's scope guardrail.
 
 | Source | Kind | Basis for access |
 |---|---|---|
-| [Remotive](https://remotive.com) | JSON API | Documented public API; asks for attribution, which the UI gives |
+| [Remotive](https://remotive.com) | JSON API | Documented public API — **but their robots.txt says `Disallow: /api/*`, so the gate refuses it and the source sits at zero rows.** See [DESIGN.md](DESIGN.md) |
 | [Arbeitnow](https://www.arbeitnow.com) | JSON API | Public keyless API published for third-party use |
 | [We Work Remotely](https://weworkremotely.com) | RSS | Public feed published for syndication |
 | [Hacker News](https://news.ycombinator.com/jobs) | JSON API | Algolia's public HN search API |
@@ -78,6 +78,11 @@ account was touched** — per the brief's scope guardrail.
 
 Every source states its basis for access on its dashboard card, and the test
 suite fails the build if one doesn't.
+
+The Remotive row is the honest part. It is the most obviously-permitted source
+here, and the gate blocks it anyway because their own robots.txt disallows
+`/api/*`. I kept the gate and lost the source rather than adding an override
+flag — a policy with an exception list is not a policy.
 
 ---
 

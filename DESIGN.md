@@ -387,6 +387,42 @@ the dashboard uses.
   dashboard card. `tests/test_pipeline.py` fails the build if a source has no
   `licence_note`. If you can't say why you're allowed to be there, you aren't.
 
+### The gate cost us a source, and I kept the gate
+
+The best evidence that any of this is real: **Remotive is excluded from the live
+demo by my own robots.txt gate.**
+
+Remotive publishes a documented public API and asks only for attribution. It is
+the single most obviously-permitted source in the project, and it is why I chose
+it first. But their `robots.txt` contains:
+
+```
+Disallow: /api/*
+```
+
+So on every poll the gate refuses `https://remotive.com/api/remote-jobs`, the
+source contributes zero rows, and the dashboard badges it **excluded by
+robots.txt** rather than pretending it is broken.
+
+There is a real argument that this is over-strict — robots.txt governs crawlers,
+and a client calling a documented API is arguably not one. I decided against
+carving out the exception, because the exception is the whole problem: the
+moment there is a flag that says "ignore robots for sources we think are fine",
+the policy is no longer a policy. I would rather lose a source and be able to
+say the gate has never been bypassed.
+
+Verify it yourself against the running service:
+
+```
+GET /api/robots-check?url=https://remotive.com/api/remote-jobs
+  -> {"allowed": false, "reason": "Disallow matches /api/remote-jobs"}
+```
+
+Worth noting for the follow-up call: from a residential IP, `remotive.com/robots.txt`
+returns a **Cloudflare challenge page**, not the file. From the deployment's
+datacentre IP it returns the real thing. Same URL, two different answers
+depending on who is asking — which is §1 of this document happening in the wild.
+
 ### The personal line
 
 The brief is right that every major platform has ToS against scraping, and I'm

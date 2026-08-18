@@ -162,6 +162,13 @@ async def sources():
             "last_ok": row.get("last_ok"),
             "note": row.get("note"),
             "success_rate_recent": round(n_clean / len(recent), 2) if recent else None,
+            # A source we are declining to fetch is not a source that is
+            # failing. Collapsing the two would make the dashboard read as
+            # "broken" when it is actually working exactly as designed.
+            "excluded_by_robots": bool(
+                recent and recent[0]["verdict"] == "skipped"
+                and "robots" in (recent[0]["note"] or "")
+            ),
             "identity": identities.get(a.name, {}),
             "pace_posterior": pacer.bandit.snapshot(a.name),
             "drift_baseline": monitor.baseline(a.name),

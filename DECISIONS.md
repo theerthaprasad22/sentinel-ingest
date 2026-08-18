@@ -64,3 +64,9 @@ baseline*.
 
 Every listing is either from a real public feed or badged **synthetic**. No
 LinkedIn, Indeed or Naukri account was touched.
+
+And the robots gate cost me a source in production: Remotive publishes a
+documented public API, but their `robots.txt` says `Disallow: /api/*`, so the
+gate refuses it and that source sits at zero rows on the live dashboard. I kept
+the gate rather than adding an override — a policy with an exception list is not
+a policy.

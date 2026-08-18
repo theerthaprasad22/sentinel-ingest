@@ -61,6 +61,7 @@ function sourceCard(s) {
   if (s.synthetic) head.append(el('span', 'badge synthetic', 'synthetic data'));
   head.append(el('span', `badge ${BREAKER_CLASS[s.breaker] || ''}`, `circuit ${s.breaker}`));
   if (s.quarantined) head.append(el('span', 'badge warn', 'quarantined'));
+  if (s.excluded_by_robots) head.append(el('span', 'badge warn', 'excluded by robots.txt'));
   card.append(head);
 
   // Strategy ladder: which rung we are on, and which ones we have fallen past.
