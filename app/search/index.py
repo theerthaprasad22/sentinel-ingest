@@ -101,7 +101,8 @@ class SemanticIndex:
         no measurable win at this scale."""
         rows = db.query(
             "SELECT canonical_id, title, company, location, description, tags "
-            "FROM jobs ORDER BY last_seen DESC LIMIT 8000"
+            "FROM jobs ORDER BY last_seen DESC LIMIT ?",
+            (settings.index_corpus_limit,),
         )
         if len(rows) < _MIN_DOCS:
             with self._lock:
@@ -112,11 +113,12 @@ class SemanticIndex:
         docs = [_document(r) for r in rows]
         word_vec = TfidfVectorizer(
             ngram_range=(1, 2), min_df=1, max_df=0.85, sublinear_tf=True,
-            strip_accents="unicode", lowercase=True, max_features=60_000,
+            strip_accents="unicode", lowercase=True,
+            max_features=settings.tfidf_max_features,
         )
         char_vec = TfidfVectorizer(
             analyzer="char_wb", ngram_range=(3, 5), min_df=2, sublinear_tf=True,
-            lowercase=True, max_features=60_000,
+            lowercase=True, max_features=settings.tfidf_max_features,
         )
         sparse = hstack([word_vec.fit_transform(docs), char_vec.fit_transform(docs)]).tocsr()
 

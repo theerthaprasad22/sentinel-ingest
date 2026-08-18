@@ -25,14 +25,13 @@ from . import circuit, fetcher, registry, store
 from .adapters.base import Adapter
 from .pacing import pacer
 
-# Rebuild the semantic index / retag at most this often, however much data lands.
-_REINDEX_MIN_INTERVAL = 90.0
 
 _state: dict[str, object] = {
     "running": False,
     "cycles": 0,
     "last_tick": 0.0,
     "last_reindex": 0.0,
+    "last_reindex_jobs": 0,
     "started_at": 0.0,
 }
 
@@ -170,8 +169,19 @@ async def _maybe_reindex(force: bool = False) -> None:
     latency features the block classifier reads.
     """
     now = time.time()
-    if not force and now - float(_state["last_reindex"]) < _REINDEX_MIN_INTERVAL:
-        return
+    if not force:
+        elapsed = now - float(_state["last_reindex"])
+        n_jobs = (db.query_one("SELECT COUNT(*) AS n FROM jobs") or {"n": 0})["n"]
+        grew = n_jobs - int(_state["last_reindex_jobs"])
+        # Two ways to earn a rebuild: enough time, or enough new data. Neither
+        # alone is right -- a busy hour should not wait 15 minutes, and a quiet
+        # night should not burn CPU re-fitting an unchanged corpus.
+        if elapsed < settings.reindex_interval_s and grew < settings.reindex_min_new_jobs:
+            return
+        # Never more often than a quarter of the interval, whatever lands.
+        if elapsed < settings.reindex_interval_s / 4:
+            return
+        _state["last_reindex_jobs"] = n_jobs
     _state["last_reindex"] = now
     try:
         built = await asyncio.to_thread(search_index.index.build)

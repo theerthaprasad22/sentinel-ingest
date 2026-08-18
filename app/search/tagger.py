@@ -25,6 +25,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_val_score
 from sklearn.pipeline import make_pipeline
 
+from ..config import settings
 from .. import db
 
 # --- labelling functions --------------------------------------------------
@@ -123,13 +124,15 @@ class WeakTagger:
     def _pipeline():
         return make_pipeline(
             TfidfVectorizer(ngram_range=(1, 2), min_df=1, sublinear_tf=True,
-                            strip_accents="unicode", max_features=40_000),
+                            strip_accents="unicode",
+                            max_features=settings.tfidf_max_features),
             LogisticRegression(max_iter=1500, class_weight="balanced", C=2.0),
         )
 
     def fit_and_apply(self) -> dict[str, object]:
         rows = db.query(
-            "SELECT canonical_id, title, company, description, tags FROM jobs LIMIT 8000"
+            "SELECT canonical_id, title, company, description, tags FROM jobs LIMIT ?",
+            (settings.index_corpus_limit,),
         )
         if len(rows) < 40:
             return {"trained": False, "reason": f"only {len(rows)} rows"}

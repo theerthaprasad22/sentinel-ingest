@@ -28,6 +28,23 @@ services:
       - key: SENTINEL_HOST_RPM_CAP
         value: "10"
       - key: SENTINEL_MAX_CONCURRENCY
-        value: "3"
+        value: "2"
+      # --- fitting inside 0.1 CPU -------------------------------------------
+      # Render's free instance gets 0.1 CPU and health-checks every few seconds
+      # with a *5 second* timeout. The first deploy rebuilt the semantic index
+      # and retrained the tagger every 90s; on that CPU budget the rebuild
+      # starved the event loop, /healthz timed out, and the platform killed the
+      # container twice in five minutes. Memory was never the problem (225 MiB
+      # of 512). These four values are the fix, measured against that failure.
+      - key: SENTINEL_REINDEX_INTERVAL
+        value: "900"
+      - key: SENTINEL_REINDEX_MIN_NEW
+        value: "60"
+      - key: SENTINEL_INDEX_CORPUS
+        value: "1500"
+      - key: SENTINEL_TFIDF_MAX_FEATURES
+        value: "8000"
+      - key: SENTINEL_TICK_SECONDS
+        value: "10"
       - key: SENTINEL_CONTACT
         sync: false        # set this to a real contact address in the dashboard

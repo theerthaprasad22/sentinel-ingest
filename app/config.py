@@ -64,6 +64,16 @@ class Settings:
     block_prob_threshold: float = _f("SENTINEL_BLOCK_THRESHOLD", 0.5)
     drift_z_threshold: float = _f("SENTINEL_DRIFT_Z", 3.0)
     embedding_dims: int = _i("SENTINEL_EMBED_DIMS", 96)
+    # How often the semantic index and tagger are rebuilt, and how big they are
+    # allowed to get. These are the knobs that decide whether the process fits
+    # its CPU budget: on a 0.1-CPU free instance a 90s rebuild cadence starves
+    # the event loop badly enough that a 5-second health check times out and the
+    # platform kills the container. Measured, not guessed -- see DESIGN.md.
+    reindex_interval_s: float = _f("SENTINEL_REINDEX_INTERVAL", 900.0)
+    # Rebuild early if this many new jobs have landed since the last build.
+    reindex_min_new_jobs: int = _i("SENTINEL_REINDEX_MIN_NEW", 40)
+    index_corpus_limit: int = _i("SENTINEL_INDEX_CORPUS", 2500)
+    tfidf_max_features: int = _i("SENTINEL_TFIDF_MAX_FEATURES", 12_000)
 
     # --- demo --------------------------------------------------------------
     # The hostile sandbox is mounted in-process so a grader can break the demo
