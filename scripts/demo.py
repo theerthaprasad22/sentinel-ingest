@@ -21,21 +21,43 @@ BASE = (sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8000").rstrip("/
 client = httpx.Client(base_url=BASE, timeout=90.0)
 
 
+def call(method: str, path: str, **kw) -> dict:
+    """One request, retried through free-tier blips.
+
+    A free instance occasionally answers with the platform's own 502 while it
+    is being rescheduled. That is not the pipeline failing, and a walkthrough
+    script that dies on it tells you nothing -- so transient non-JSON responses
+    are retried rather than raised.
+    """
+    last = ""
+    for attempt in range(5):
+        try:
+            r = client.request(method, path, **kw)
+            return r.json()
+        except (httpx.HTTPError, ValueError) as exc:
+            last = f"{type(exc).__name__}: {exc}"
+            time.sleep(3 * (attempt + 1))
+    print(f"  (gave up on {method} {path}: {last})")
+    return {}
+
+
 def rule(title: str) -> None:
     print(f"\n\033[1m{title}\033[0m\n" + "-" * max(len(title), 40))
 
 
 def control(**flags) -> dict:
-    return client.post("/sandbox/control", json=flags).json()["state"]
+    return call("POST", "/sandbox/control", json=flags).get("state", {})
 
 
 def reset() -> None:
     control(reset=True)
-    client.post("/api/sources/sandbox/reset")
+    call("POST", "/api/sources/sandbox/reset")
 
 
 def poll() -> str:
-    r = client.post("/api/sources/sandbox/poll").json()
+    r = call("POST", "/api/sources/sandbox/poll")
+    if not r:
+        return "  (no response -- instance busy, skipping this probe)"
     if "skipped" in r:
         return f"  SKIPPED    {r['skipped']} (retry in {r.get('retry_in')}s)"
     conf = r.get("extraction_confidence")
@@ -48,7 +70,7 @@ def poll() -> str:
 
 
 def main() -> None:
-    health = client.get("/api/health").json()
+    health = call("GET", "/api/health")
     print(f"Connected to {BASE} -- {health['sources_healthy']}/{health['sources_total']} "
           f"sources healthy, {health['jobs']['total']} jobs stored")
 
@@ -75,7 +97,7 @@ def main() -> None:
     control(hard_block=True)
     for _ in range(3):
         print(poll())
-    src = next(s for s in client.get("/api/sources").json() if s["name"] == "sandbox")
+    src = next(s for s in call("GET", "/api/sources") if s["name"] == "sandbox")
     print(f"   -> now on rung '{src['current_strategy']}', circuit {src['breaker']}")
 
     rule("4. Markup v3 -- hashed class names, every stored selector dead")
@@ -120,7 +142,7 @@ def main() -> None:
 
     rule("7. robots.txt is enforced, not merely claimed")
     for path in ("/sandbox/private/jobs", "/sandbox/jobs"):
-        r = client.get("/api/robots-check", params={"url": BASE + path}).json()
+        r = call("GET", "/api/robots-check", params={"url": BASE + path})
         print(f"   {path:24} allowed={str(r['allowed']):5} -- {r['reason']}")
 
     rule("8. Block classifier scored on ground truth, not on its training set")
@@ -132,7 +154,7 @@ def main() -> None:
         poll()
     reset()
     time.sleep(1)
-    print(json.dumps(client.get("/api/ml").json()["block_classifier_live"], indent=2))
+    print(json.dumps(call("GET", "/api/ml").get("block_classifier_live", {}), indent=2))
 
     reset()
     print("\nDefences reset. Dashboard: " + BASE)
