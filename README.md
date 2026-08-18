@@ -8,7 +8,8 @@ platform that doesn't want you to**.
 Five sources, five ways in, and a hostile job board served by the application
 itself so you can break the demo on purpose and watch it recover.
 
-- 📊 **Live demo** → *(deployed URL)*
+- 📊 **Live demo** → *(deployed URL — see Deploying below)*
+- 💻 **Repo** → <https://github.com/theerthaprasad22/sentinel-ingest>
 - 📐 **Design document** → [DESIGN.md](DESIGN.md) — detection surface, ingestion
   strategy, resilience, and where I'd stop
 - 🧭 **Decisions** → [DECISIONS.md](DECISIONS.md) — one page, three questions
@@ -132,8 +133,17 @@ it weren't?"*
 ## Deploying
 
 `render.yaml` is a complete Render blueprint — Docker runtime, free plan, health
-check wired up. Push the repo, point Render at it, and set `SENTINEL_CONTACT` to
-a real address.
+check wired up.
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/theerthaprasad22/sentinel-ingest)
+
+Or by hand: **New → Blueprint** in the Render dashboard, pick this repo, apply.
+Then set `SENTINEL_CONTACT` to a real address — the crawler publishes it in a
+`From:` header, and a contactable crawler gets rate-limited where an anonymous
+one gets banned.
+
+Footprint, measured rather than guessed: ~240MB resident with all five sources
+polling and every model trained, which fits the free plan's 512MB.
 
 **One honest caveat about free tiers:** the instance sleeps after ~15 minutes of
 inactivity, which stops the scheduler. On wake it cold-starts in ~40 seconds
