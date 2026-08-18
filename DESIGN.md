@@ -289,6 +289,23 @@ to honour) trips it immediately rather than after N strikes.
 The failure this prevents isn't "a request failed" — it's the retry loop that
 converts a soft rate-limit into a durable ban.
 
+### 3c. Why the semantic layer is not a transformer
+
+Moved here from DECISIONS.md, which the brief caps at one page.
+
+A MiniLM checkpoint plus torch is ~900MB of image for a corpus of a few thousand
+short job postings, on a host with 512MB of RAM. TF-IDF into a truncated SVD
+gives vectors that behave the same way *for this corpus*, trains in under a
+second on every restart, needs no model download, and can be explained end to
+end. Two vectorisers are unioned: word 1-2 grams for the semantics ("machine
+learning engineer" vs "ml engineer") and char 3-5 grams for the robustness
+(typos, "K8s"/"Kubernetes", "Sr."/"Senior").
+
+At ten times the corpus I would revisit it. The honest limit is that this
+embedding has no world knowledge: it finds "deep learning" from a PyTorch
+description because those words co-occur in *this* corpus, not because it knows
+what PyTorch is.
+
 ### 3c-bis. Near-duplicate detection, and the version of it that was wrong
 
 Worth documenting because the first implementation *looked* like it worked.
